@@ -3,16 +3,15 @@ module NewtonSolvers
 using LinearAlgebra
 
 function solve!(
-        FJ!, F::AbstractVector{T}, J, x::AbstractVector, δx::AbstractVector=fill!(similar(x), zero(eltype(x)));
-        atol::T=sqrt(eps(T)), rtol::T=zero(T), maxiter::Int=20, linsolve=(x,A,b)->x.=A\b,
+        FJ!, F::AbstractVector, J, x::AbstractVector, δx::AbstractVector=fill!(similar(x), zero(eltype(x)));
+        f_tol::Real=convert(eltype(F), 1e-8), x_tol::Real=zero(eltype(x)),
+        maxiter::Int=20, linsolve=(x,A,b)->x.=A\b,
         backtracking::Bool=true, showtrace::Bool=false,
-    ) where {T}
+    )
 
     # compute current residual
     FJ!(F, nothing, x)
-    f = norm(F)
-    TOL = max(rtol*f, atol)
-    f < TOL && return true
+    norm(F, Inf) < f_tol && return true
 
     x_prev = copy(x)
 
@@ -32,13 +31,16 @@ function solve!(
             α₀ = one(eltype(δx))
             ϕ_0 = norm(F)
             ϕ′_0 = -ϕ_0
-            f = _backtracking(ϕ, α₀, ϕ_0, ϕ′_0)
+            _backtracking(ϕ, α₀, ϕ_0, ϕ′_0)
         else
-            f = ϕ(1)
+            ϕ(1)
         end
 
-        showtrace && println("| f(x) | = ", f)
-        f < TOL && return true
+        f★ = norm(F, Inf)
+        x★ = norm(x-x_prev, 2)
+
+        showtrace && println("|f(x)|∞ = ", rpad(f★, 22), "  |x-x'|₂ = ", rpad(x★, 22))
+        (f★ ≤ f_tol || x★ ≤ x_tol) && return true
 
         x_prev .= x
     end
