@@ -19,7 +19,7 @@ function solve!(
     function ϕ(α)
         @. x = x_prev + α * δx
         FJ!(F, nothing, x)
-        dot(F, F) / 2
+        norm(F)
     end
 
     @inbounds for _ in 1:maxiter
@@ -30,8 +30,8 @@ function solve!(
 
         if backtracking == true
             α₀ = one(eltype(δx))
-            ϕ_0 = dot(F, F) / 2
-            ϕ′_0 = dot(F, J, δx)
+            ϕ_0 = norm(F)
+            ϕ′_0 = -ϕ_0
             f = _backtracking(ϕ, α₀, ϕ_0, ϕ′_0)
         else
             f = ϕ(1)
