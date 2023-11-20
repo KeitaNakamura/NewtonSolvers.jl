@@ -3,27 +3,27 @@ module NewtonSolvers
 using LinearAlgebra
 
 function solve!(
-        FJ!, F::AbstractVector, J, x::AbstractVector, δx::AbstractVector=fill!(similar(x), zero(eltype(x)));
+        F!, J!, F::AbstractVector, J, x::AbstractVector, δx::AbstractVector=fill!(similar(x), zero(eltype(x)));
         f_tol::Real=convert(eltype(F), 1e-8), x_tol::Real=zero(eltype(x)),
         maxiter::Int=20, linsolve=(x,A,b)->x.=A\b,
         backtracking::Bool=true, showtrace::Bool=false,
     )
 
     # compute current residual
-    FJ!(F, nothing, x)
+    F!(F, x)
     norm(F, Inf) < f_tol && return true
 
     x_prev = copy(x)
 
     function ϕ(α)
         @. x = x_prev + α * δx
-        FJ!(F, nothing, x)
+        F!(F, x)
         norm(F)
     end
 
     @inbounds for _ in 1:maxiter
         # solve linear system
-        FJ!(nothing, J, x)
+        J!(J, x)
         linsolve(δx, J, F)
         rmul!(δx, -1)
 

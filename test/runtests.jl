@@ -17,14 +17,9 @@ using Test
         J[2, 2] = u
     end
 
-    function fj!(F, J, x)
-        F !== nothing && f!(F, x)
-        J !== nothing && j!(J, x)
-    end
-
     for backtracking in (true, false) # TODO: good tests for backtracking
         x = [0.1,1.2]
-        converged = NewtonSolvers.solve!(fj!, zeros(2), zeros(2,2), x; backtracking)
+        converged = NewtonSolvers.solve!(f!, j!, zeros(2), zeros(2,2), x; backtracking)
         @test converged
         @test norm(f!(zeros(2), x)) < sqrt(eps(Float64))
     end
