@@ -17,10 +17,26 @@ using Test
         J[2, 2] = u
     end
 
-    for backtracking in (true, false) # TODO: good tests for backtracking
-        x = [0.1,1.2]
-        converged = NewtonSolvers.solve!(f!, j!, zeros(2), zeros(2,2), x; backtracking)
-        @test converged
-        @test norm(f!(zeros(2), x)) < sqrt(eps(Float64))
+    for T in (Float64, Float32)
+        for backtracking in (true, false) # TODO: good tests for backtracking
+            x = T[0.1,1.2]
+            converged = NewtonSolvers.solve!(f!, j!, zeros(T,2), zeros(T,2,2), x; backtracking)
+            @test converged
+            @test norm(f!(zeros(T,2), x)) < sqrt(eps(T))
+        end
+    end
+
+    @testset "Termination" begin
+        for T in (Float64, Float32)
+            ϵ = sqrt(eps(T))
+            for backtracking in (true, false)
+                for (f_tol, x_tol, dx_tol) in ([ϵ,0,0], [0,ϵ,0], [0,0,ϵ])
+                    x = T[0.1,1.2]
+                    converged = NewtonSolvers.solve!(f!, j!, zeros(T,2), zeros(T,2,2), x; f_tol, x_tol, dx_tol, backtracking)
+                    @test converged
+                    @test norm(f!(zeros(T,2), x)) < sqrt(eps(T))
+                end
+            end
+        end
     end
 end
