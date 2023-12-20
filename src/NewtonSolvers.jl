@@ -9,6 +9,8 @@ function solve!(
         backtracking::Bool=true, showtrace::Bool=false,
     )
 
+    compact(val) = rpad(sprint(show, val; context = :compact=>true), 11)
+
     # compute current residual
     F!(F, x)
     norm(F, Inf) < f_tol && return true
@@ -40,9 +42,9 @@ function solve!(
         x★ = norm(δx, Inf)
         dx★ = norm(x-x_prev, 2)
 
-        showtrace && println("|f(x)|∞ = ", rpad(f★, 22), "  ",
-                             "|δx|∞ = ", rpad(x★, 22), "  ",
-                             "|x-x'|₂ = ", rpad(dx★, 22))
+        showtrace && println("|f(x)|∞ = ", compact(f★), "  ",
+                             "|δx|∞ = ", compact(x★), "  ",
+                             "|x-x'|₂ = ", compact(dx★))
         (f★ < f_tol || x★ < x_tol || dx★ < dx_tol) && return true
 
         x_prev .= x
