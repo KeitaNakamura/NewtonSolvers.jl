@@ -4,7 +4,7 @@ using LinearAlgebra
 
 function solve!(
         F!, J!, F::AbstractVector, J, x::AbstractVector, δx::AbstractVector=fill!(similar(x), zero(eltype(x)));
-        f_tol::Real=convert(eltype(F), 1e-8), x_tol::Real=zero(eltype(x)),
+        f_tol::Real=convert(eltype(F), 1e-8), x_tol::Real=zero(eltype(x)), dx_tol::Real=zero(eltype(x)),
         maxiter::Int=20, linsolve=(x,A,b)->x.=A\b,
         backtracking::Bool=true, showtrace::Bool=false,
     )
@@ -37,10 +37,13 @@ function solve!(
         end
 
         f★ = norm(F, Inf)
-        x★ = norm(x-x_prev, 2)
+        x★ = norm(δx, Inf)
+        dx★ = norm(x-x_prev, 2)
 
-        showtrace && println("|f(x)|∞ = ", rpad(f★, 22), "  |x-x'|₂ = ", rpad(x★, 22))
-        (f★ ≤ f_tol || x★ ≤ x_tol) && return true
+        showtrace && println("|f(x)|∞ = ", rpad(f★, 22), "  ",
+                             "|δx|∞ = ", rpad(x★, 22), "  ",
+                             "|x-x'|₂ = ", rpad(dx★, 22))
+        (f★ < f_tol || x★ < x_tol || dx★ < dx_tol) && return true
 
         x_prev .= x
     end
