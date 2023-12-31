@@ -13,7 +13,7 @@ function solve!(
 
     # compute current residual
     F!(F, x)
-    norm(F, Inf) < f_tol && return true
+    norm(F, Inf) ≤ f_tol && return true
 
     x_prev = copy(x)
 
@@ -45,7 +45,7 @@ function solve!(
         showtrace && println("|f(x)|∞ = ", compact(f★), "  ",
                              "|δx|∞ = ", compact(x★), "  ",
                              "|x-x'|₂ = ", compact(dx★))
-        (f★ < f_tol || x★ < x_tol || dx★ < dx_tol) && return true
+        (f★ ≤ f_tol || x★ ≤ x_tol || dx★ ≤ dx_tol) && return true
 
         x_prev .= x
     end
