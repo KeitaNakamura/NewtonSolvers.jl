@@ -2,18 +2,30 @@ module NewtonSolvers
 
 using LinearAlgebra
 
+struct ConvergenceHistory{T, U}
+    iters::Int
+    isconverged::Bool
+    f::Vector{T}
+    x::Vector{U}
+    dx::Vector{U}
+end
+
 function solve!(
         F!, J!, F::AbstractVector, J, x::AbstractVector, δx::AbstractVector=fill!(similar(x), zero(eltype(x)));
         f_tol::Real=convert(eltype(F), 1e-8), x_tol::Real=zero(eltype(x)), dx_tol::Real=zero(eltype(x)),
         iterations::Int=1000, linsolve=(x,A,b)->x.=A\b,
         backtracking::Bool=true, showtrace::Bool=false,
+        logall::Bool=false,
     )
-
     compact(val) = rpad(sprint(show, val; context = :compact=>true), 11)
+
+    f_hist = eltype(F)[]
+    x_hist = eltype(x)[]
+    dx_hist = eltype(x)[]
 
     # compute current residual
     F!(F, x)
-    norm(F, Inf) ≤ f_tol && return true
+    norm(F, Inf) ≤ f_tol && return ConvergenceHistory(0, true, f_hist, x_hist, dx_hist)
 
     x_prev = copy(x)
 
@@ -23,7 +35,7 @@ function solve!(
         norm(F)
     end
 
-    @inbounds for _ in 1:iterations
+    @inbounds for i in 1:iterations
         # solve linear system
         J!(J, x)
         linsolve(δx, J, F)
@@ -41,16 +53,29 @@ function solve!(
         f★ = norm(F, Inf)
         x★ = norm(δx, Inf)
         dx★ = norm(x-x_prev, 2)
+        if logall
+            push!(f_hist, f★)
+            push!(x_hist, x★)
+            push!(dx_hist, dx★)
+        end
 
         showtrace && println("|f(x)|∞ = ", compact(f★), "  ",
                              "|δx|∞ = ", compact(x★), "  ",
                              "|x-x'|₂ = ", compact(dx★))
-        (f★ ≤ f_tol || x★ ≤ x_tol || dx★ ≤ dx_tol) && return true
+
+        if f★ ≤ f_tol || x★ ≤ x_tol || dx★ ≤ dx_tol
+            if !logall
+                push!(f_hist, f★)
+                push!(x_hist, x★)
+                push!(dx_hist, dx★)
+            end
+            return ConvergenceHistory(i, true, f_hist, x_hist, dx_hist)
+        end
 
         x_prev .= x
     end
 
-    false
+    ConvergenceHistory(iterations, false, f_hist, x_hist, dx_hist)
 end
 
 function _backtracking(ϕ, α₀, ϕ_0, ϕ′_0)

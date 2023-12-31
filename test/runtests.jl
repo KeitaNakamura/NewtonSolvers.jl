@@ -20,8 +20,8 @@ using Test
     for T in (Float64, Float32)
         for backtracking in (true, false) # TODO: good tests for backtracking
             x = T[0.1,1.2]
-            converged = NewtonSolvers.solve!(f!, j!, zeros(T,2), zeros(T,2,2), x; backtracking)
-            @test converged
+            ch = NewtonSolvers.solve!(f!, j!, zeros(T,2), zeros(T,2,2), x; backtracking)
+            @test ch.isconverged
             @test norm(f!(zeros(T,2), x)) < sqrt(eps(T))
         end
     end
@@ -32,11 +32,22 @@ using Test
             for backtracking in (true, false)
                 for (f_tol, x_tol, dx_tol) in ([ϵ,0,0], [0,ϵ,0], [0,0,ϵ])
                     x = T[0.1,1.2]
-                    converged = NewtonSolvers.solve!(f!, j!, zeros(T,2), zeros(T,2,2), x; f_tol, x_tol, dx_tol, backtracking)
-                    @test converged
+                    ch = NewtonSolvers.solve!(f!, j!, zeros(T,2), zeros(T,2,2), x; f_tol, x_tol, dx_tol, backtracking)
+                    @test ch.isconverged
                     @test norm(f!(zeros(T,2), x)) < sqrt(eps(T))
                 end
             end
         end
+    end
+
+    @testset "Convergence history" begin
+        ch = NewtonSolvers.solve!(f!, j!, zeros(2), zeros(2,2), [0.1,1.2])
+        @test length(ch.f) == 1
+        @test length(ch.x) == 1
+        @test length(ch.dx) == 1
+        ch = NewtonSolvers.solve!(f!, j!, zeros(2), zeros(2,2), [0.1,1.2]; logall=true)
+        @test length(ch.f) == ch.iters
+        @test length(ch.x) == ch.iters
+        @test length(ch.dx) == ch.iters
     end
 end
