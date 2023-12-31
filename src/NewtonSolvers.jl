@@ -5,7 +5,7 @@ using LinearAlgebra
 function solve!(
         F!, J!, F::AbstractVector, J, x::AbstractVector, δx::AbstractVector=fill!(similar(x), zero(eltype(x)));
         f_tol::Real=convert(eltype(F), 1e-8), x_tol::Real=zero(eltype(x)), dx_tol::Real=zero(eltype(x)),
-        maxiter::Int=20, linsolve=(x,A,b)->x.=A\b,
+        iterations::Int=1000, linsolve=(x,A,b)->x.=A\b,
         backtracking::Bool=true, showtrace::Bool=false,
     )
 
@@ -23,7 +23,7 @@ function solve!(
         norm(F)
     end
 
-    @inbounds for _ in 1:maxiter
+    @inbounds for _ in 1:iterations
         # solve linear system
         J!(J, x)
         linsolve(δx, J, F)
