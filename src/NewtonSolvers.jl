@@ -10,35 +10,55 @@ struct ConvergenceHistory{T, U}
     dx::Vector{U}
 end
 
+struct NoParameters
+end
+
+function fx_eltype(f,x,p)
+    T = Base._return_type(f, Tuple{typeof(x),typeof(p)})
+    T == Union{} && f(x,p)
+    eltype(T)
+end
+function fx_eltype(f,x,::NoParameters)
+    T = Base._return_type(f, Tuple{typeof(x)})
+    T == Union{} && f(x)
+    eltype(T)
+end
+
+apply(f,x,p) = f(x,p)
+apply(f,x,::NoParameters) = f(x)
+
 function solve!(
-        F!, J!, F::AbstractVector, J, x::AbstractVector, δx::AbstractVector=fill!(similar(x), zero(eltype(x)));
-        f_tol::Real=convert(eltype(F), 1e-8), x_tol::Real=zero(eltype(x)), dx_tol::Real=zero(eltype(x)),
+        f, j, x::AbstractVector, p=NoParameters();
+        f_tol::Real=convert(fx_eltype(f,x,p), 1e-8), x_tol::Real=zero(eltype(x)), dx_tol::Real=zero(eltype(x)),
         iterations::Int=1000, linsolve=(x,A,b)->x.=A\b,
         backtracking::Bool=true, showtrace::Bool=false,
         logall::Bool=false,
     )
     compact(val) = rpad(sprint(show, val; context = :compact=>true), 11)
+    f!(F, x) = copyto!(F, apply(f,x,p))
+
+    δx = Vector{eltype(x)}(undef, length(x))
+    F = Vector{fx_eltype(f,x,p)}(undef, length(x))
 
     f_hist = eltype(F)[]
     x_hist = eltype(x)[]
     dx_hist = eltype(x)[]
 
     # compute current residual
-    F!(F, x)
+    f!(F, x)
     norm(F, Inf) ≤ f_tol && return ConvergenceHistory(0, true, f_hist, x_hist, dx_hist)
 
     x_prev = copy(x)
 
     function ϕ(α)
         @. x = x_prev + α * δx
-        F!(F, x)
+        f!(F, x)
         norm(F)
     end
 
     @inbounds for i in 1:iterations
         # solve linear system
-        J!(J, x)
-        linsolve(δx, J, F)
+        linsolve(δx, apply(j,x,p), F)
         rmul!(δx, -1)
 
         if backtracking == true
@@ -78,8 +98,8 @@ function solve!(
     ConvergenceHistory(iterations, false, f_hist, x_hist, dx_hist)
 end
 
-function _backtracking(ϕ, α₀, ϕ_0, ϕ′_0)
-    c₁ = 1e-4
+function _backtracking(ϕ, α₀::T, ϕ_0, ϕ′_0) where {T}
+    c₁ = T(1e-4)
     α₁ = α₂ = α₀
     ϕ_α₁ = ϕ_α₂ = ϕ(α₀)
     k = 0
@@ -97,7 +117,7 @@ function _backtracking(ϕ, α₀, ϕ_0, ϕ′_0)
         end
 
         α₁ = α₂
-        α₂ = clamp(α★, 0.1α₂, 0.5α₂)
+        α₂ = clamp(α★, T(0.1)*α₂, T(0.5)*α₂)
 
         ϕ_α₁ = ϕ_α₂
         ϕ_α₂ = ϕ(α₂)
