@@ -1,7 +1,7 @@
 name = "NewtonSolvers"
 uuid = "08c6405b-2d9a-475f-9b5b-02ac0aab7e31"
 authors = ["Keita Nakamura <keita.nakamura.1109@gmail.com>"]
-version = "0.5.0"
+version = "0.6.0"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
